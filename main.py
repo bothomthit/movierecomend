@@ -6,11 +6,11 @@
 #
 # # Kiểm tra xem yêu cầu đã thành công không
 # if response.status_code == 200:
-#     # Sử dụng BeautifulSoup để phân tích cú pháp HTML của trang webmd
+#     # Sử dụng BeautifulSoup để phân tích cú pháp HTML của trang web
 #     soup = BeautifulSoup(response.content, 'html.parser')
 #
 #     # Tạo hoặc mở một tệp văn bản để ghi thông tin
-#     with open('datamovies.txt', 'w', encoding='utf-8') as file:
+#     with open('phim_top_100_imdb.txt', 'w', encoding='utf-8') as file:
 #         # Tìm tất cả các phần tử có class là 'lister-item mode-advanced'
 #         movies = soup.find_all('div', class_='lister-item mode-advanced')
 #
@@ -58,8 +58,8 @@
 
 # import csv
 #
-# # Đọc dữ liệu từ tệp datamovies.txt và lưu vào danh sách movies
-# with open('C:/datamovies.txt', 'r', encoding='utf-8') as file:
+# # Đọc dữ liệu từ tệp phim_top_100_imdb.txt và lưu vào danh sách movies
+# with open('C:/Users/ADMIN/phim_top_100_imdb.txt', 'r', encoding='utf-8') as file:
 #     lines = file.readlines()
 ##Chuẩn bị danh sách movies và biến current_movie:
 # movies = []
@@ -77,8 +77,8 @@
 #             movies.append(current_movie)
 #             current_movie = {}
 #
-# # Ghi dữ liệu vào tệp  datamovies.csv dưới dạng CSV
-# with open('datamovies.csv', 'w', newline='', encoding='utf-8') as csvfile:
+# # Ghi dữ liệu vào tệp phim top 100 imdb.csv dưới dạng CSV
+# with open('phim_top_100_imdb.csv', 'w', newline='', encoding='utf-8') as csvfile:
 #     csv_writer = csv.writer(csv
 #     file)
 #
@@ -95,8 +95,6 @@
 #
 # print("Dữ liệu đã được ghi vào tệp phim top 100 imdb.csv.")
 
-
-
 # from pyspark.sql import SparkSession
 # from pyspark.sql.functions import unix_timestamp
 # from pyspark.sql.types import TimestampType
@@ -111,7 +109,15 @@
 # # Đọc dữ liệu từ tệp movies.csv
 # movies_data = spark.read.csv("D:/datamovies/4_2015/movies.csv", header=True, inferSchema=True)
 #
-
+#
+# # Đọc dữ liệu từ tệp tags.csv
+# tags_data = spark.read.csv("D:/datamovies/4_2015/tags.csv", header=True, inferSchema=True)
+# tags_data = tags_data.withColumn("timestamp", tags_data["timestamp"].cast(StringType()))
+#
+#
+# # Chuyển đổi cột timestamp trong tags_data thành định dạng thời gian đọc được
+# tags_data = tags_data.withColumn("timestamp", unix_timestamp("timestamp").cast(TimestampType()))
+#
 #
 # # Gộp dữ liệu từ ratings_data và movies_data dựa trên cột 'movieId'
 # merged_data = ratings_data.join(movies_data, on='movieId', how='inner')
@@ -139,6 +145,7 @@
 
 
 from pyspark.sql import SparkSession
+from pyspark.sql.connect.functions import lit
 from pyspark.sql.types import StructType, StructField, IntegerType, DoubleType, StringType, TimestampType
 from pyspark.ml.recommendation import ALS
 from pyspark.ml.evaluation import RegressionEvaluator
@@ -167,7 +174,8 @@ schema = StructType([
 ])
 
 # Đọc dữ liệu với schema đã định nghĩa
-csv_data = spark.read.csv("D:\LEARN\data\datamovies.txt", header=False, schema=schema)
+csv_data = spark.read.csv("D:/datamovies/merged_data.csv/part-00000-d9263bbf-9b3e-4130-b609-813cf4b5bdde-c000.csv", header=False, schema=schema)
+
 
 
 # Hiển thị dữ liệu
@@ -224,11 +232,7 @@ rmse = evaluator.evaluate(predictions)
 print("Root Mean Squared Error (RMSE) on test data = " + str(rmse))
 
 # Hiển thị các dự đoán trên tập kiểm tra
-predictions.show(truncate=False)
-
-#model.save("hdfs://localhost:9000/Models/modelASL")
-
-
+#predictions.show(truncate=False)
 # from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
 #
 # # Xây dựng grid search cho các siêu tham số cần tinh chỉnh
@@ -278,7 +282,7 @@ new_user_id = int(input("Nhập userId: "))
 user1_recommendations = uniqueUserRecs.filter(col("userId") == new_user_id).select("recommendations")
 # Sử dụng hàm explode để chuyển mảng cột recommendations thành các dòng riêng lẻ
 user1_recommendations_exploded = user1_recommendations.withColumn("exploded_recommendations", explode("recommendations"))
-movies_data = spark.read.csv("C:\data\ml-20m\movies.csv", header=True)
+movies_data = spark.read.csv("D:/datamovies/4_2015/movies.csv", header=True)
 # Gộp DataFrame user1_recommendations_exploded và csv_data dựa trên cột movieId
 recommendations_with_titles = user1_recommendations_exploded.alias("ur").join(
     movies_data.alias("cd"),
